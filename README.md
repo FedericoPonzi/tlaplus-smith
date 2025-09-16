@@ -106,9 +106,15 @@ cd tlaplus-smith
 # Run tests
 ./gradlew test
 
-# Create executable JAR
-./gradlew jar
+# Create executable JAR with dependencies
+./gradlew fatJar
 ```
+
+### Pre-built Releases
+
+Download the latest JAR from:
+- **GitHub Releases**: Download `tlaplus-smith-1.0.0-all.jar` from the releases page
+- **CI Artifacts**: Download from the latest successful build in the Actions tab
 
 ## Usage
 
@@ -128,11 +134,11 @@ cd tlaplus-smith
 
 #### Running the JAR directly
 ```bash
-# Build the JAR first
-./gradlew jar
+# Build the fat JAR with dependencies
+./gradlew fatJar
 
 # Run with java
-java -jar build/libs/tlaplus-smith-1.0.0.jar [num_specs] [seed]
+java -jar build/libs/tlaplus-smith-1.0.0-all.jar [num_specs] [seed]
 ```
 
 ### Example Output
@@ -140,24 +146,26 @@ java -jar build/libs/tlaplus-smith-1.0.0.jar [num_specs] [seed]
 ```tla
 ---- MODULE RandomSpec1 ----
 EXTENDS Integers
-CONSTANTS C, C2
+CONSTANTS C
 VARIABLES x, x2, x3
 
-Init == (x = 0 /\ x2 > C) /\ x3 = TRUE
+Init == FALSE
 
-Next == (x < C2 /\ x' = x + 1 /\ x2' = x2 /\ x3' = FALSE) \/
-        (x3 = TRUE /\ x' = x /\ x2' = x2 - 1 /\ x3' = x3)
+Next ==
+  (((TRUE /\ (((x' = (x + 1)) /\ (x2' = x2)) /\ (x3' = x3))) \/ (C /\ (((x' = (x + 1)) /\ (x2' = (x2 + 1))) /\ (x3' = (x3 + 1))))) \/ (C /\ (((x' = x) /\ (x2' = (x2 + 1))) /\ (x3' = (x3 + 1)))))
 
 Spec == Init /\ [][Next]_<<x, x2, x3>>
 ====
 ```
 
+Note: All expressions are fully parenthesized to eliminate precedence conflicts.
+
 ### Library Usage (Simple API)
 
 ```java
-import com.tlasmith.TLASmith;
-import com.tlasmith.ast.Spec;
-import com.tlasmith.validation.SanyValidator;
+import me.fponzi.tlasmith.TLASmith;
+import me.fponzi.tlasmith.ast.Spec;
+import me.fponzi.tlasmith.validation.SanyValidator;
 
 // Generate a random TLA+ specification
 Spec spec = TLASmith.generateSpec("MyModule");
@@ -184,10 +192,10 @@ SanyValidator.ValidationResult result = TLASmith.generateAndValidate("TestModule
 ### Advanced Library Usage
 
 ```java
-import com.tlasmith.generator.Generator;
-import com.tlasmith.ast.Spec;
-import com.tlasmith.printer.TLAPrinter;
-import com.tlasmith.validation.SanyValidator;
+import me.fponzi.tlasmith.generator.Generator;
+import me.fponzi.tlasmith.ast.Spec;
+import me.fponzi.tlasmith.printer.TLAPrinter;
+import me.fponzi.tlasmith.validation.SanyValidator;
 
 // Custom configuration
 Generator.GeneratorConfig config = new Generator.GeneratorConfig(
@@ -253,7 +261,7 @@ The project uses a visitor pattern for AST nodes with the base `Expr` interface.
 ./gradlew test
 
 # Run specific test class
-./gradlew test --tests "com.tlasmith.ast.ExprTest"
+./gradlew test --tests "me.fponzi.tlasmith.ast.ExprTest"
 
 # Run tests with verbose output
 ./gradlew test --info

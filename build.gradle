@@ -4,7 +4,7 @@ plugins {
     id 'maven-publish'
 }
 
-group = 'com.tlasmith'
+group = 'me.fponzi.tlasmith'
 version = '1.0.0'
 
 java {
@@ -16,7 +16,7 @@ java {
 }
 
 application {
-    mainClass = 'com.tlasmith.Main'
+    mainClass = 'me.fponzi.tlasmith.Main'
 }
 
 repositories {
@@ -44,9 +44,24 @@ tasks.withType(JavaCompile) {
 jar {
     manifest {
         attributes(
-            'Main-Class': 'com.tlasmith.Main'
+            'Main-Class': 'me.fponzi.tlasmith.Main'
         )
     }
+}
+
+// Create a fat JAR with all dependencies
+task fatJar(type: Jar) {
+    manifest {
+        attributes(
+            'Main-Class': 'me.fponzi.tlasmith.Main'
+        )
+    }
+    archiveClassifier = 'all'
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    with jar
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 publishing {

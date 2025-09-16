@@ -24,3 +24,18 @@ jobs:
 
     - name: Run tests
       run: ./gradlew test
+
+    - name: Build fat JAR
+      run: ./gradlew fatJar
+
+    - name: Test JAR generation
+      run: |
+        echo "Testing TLA+-Smith JAR..."
+        java -jar build/libs/tlaplus-smith-1.0.0-all.jar 1 42
+        echo "JAR test completed successfully!"
+
+    - name: Upload JAR artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: tlaplus-smith-jar
+        path: build/libs/tlaplus-smith-1.0.0-all.jar
