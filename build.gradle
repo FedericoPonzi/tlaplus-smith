@@ -1,6 +1,7 @@
 plugins {
     id 'java-library'
     id 'application'
+    id 'maven-publish'
 }
 
 group = 'com.tlasmith'
@@ -43,5 +44,13 @@ jar {
         attributes(
             'Main-Class': 'com.tlasmith.Main'
         )
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
     }
 }

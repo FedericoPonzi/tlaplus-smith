@@ -38,9 +38,9 @@ A random TLA+ specification generator inspired by Csmith for C. TLA+-Smith gener
 
 Add TLA+-Smith to your project via JitPack:
 
-#### Gradle
-```gradle
-// settings.gradle(.kts)
+#### Gradle (Kotlin DSL)
+```kotlin
+// settings.gradle.kts
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
@@ -48,7 +48,23 @@ dependencyResolutionManagement {
     }
 }
 
-// build.gradle(.kts)
+// build.gradle.kts
+dependencies {
+    implementation("com.github.fponzi:tlaplus-smith:1.0.0")
+}
+```
+
+#### Gradle (Groovy DSL)
+```gradle
+// settings.gradle
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}
+
+// build.gradle
 dependencies {
     implementation 'com.github.fponzi:tlaplus-smith:1.0.0'
 }
@@ -56,6 +72,7 @@ dependencies {
 
 #### Maven
 ```xml
+<!-- pom.xml -->
 <repositories>
     <repository>
         <id>jitpack.io</id>
@@ -63,11 +80,13 @@ dependencies {
     </repository>
 </repositories>
 
-<dependency>
-    <groupId>com.github.fponzi</groupId>
-    <artifactId>tlaplus-smith</artifactId>
-    <version>1.0.0</version>
-</dependency>
+<dependencies>
+    <dependency>
+        <groupId>com.github.fponzi</groupId>
+        <artifactId>tlaplus-smith</artifactId>
+        <version>1.0.0</version>
+    </dependency>
+</dependencies>
 ```
 
 ### Building from Source
