@@ -233,28 +233,25 @@ public class Generator {
     private Expr generateStateChange(List<String> variables) {
         List<Expr> changes = new ArrayList<>();
 
+        // ALL variables must be assigned in TLA+ Next formulas
         for (String var : variables) {
-            if (random.nextDouble() < 0.7) { // 70% chance to include each variable
-                Var primed = new Var(var + "'");
-                Expr value;
+            Var primed = new Var(var + "'");
+            Expr value;
 
-                if (random.nextBoolean()) {
-                    // Keep same value
-                    value = new Var(var);
-                } else {
-                    // Change value
-                    value = new BinaryOp(BinaryOp.Operator.PLUS, new Var(var), new Literal(1));
-                }
-
-                changes.add(new BinaryOp(BinaryOp.Operator.EQUALS, primed, value));
+            if (random.nextBoolean()) {
+                // Keep same value
+                value = new Var(var);
+            } else {
+                // Change value
+                value = new BinaryOp(BinaryOp.Operator.PLUS, new Var(var), new Literal(1));
             }
+
+            changes.add(new BinaryOp(BinaryOp.Operator.EQUALS, primed, value));
         }
 
         if (changes.isEmpty()) {
-            String var = variables.get(random.nextInt(variables.size()));
-            Var primed = new Var(var + "'");
-            Expr value = new Var(var);
-            changes.add(new BinaryOp(BinaryOp.Operator.EQUALS, primed, value));
+            // Fallback for empty variables list
+            return Literal.trueLiteral();
         }
 
         // Combine with AND

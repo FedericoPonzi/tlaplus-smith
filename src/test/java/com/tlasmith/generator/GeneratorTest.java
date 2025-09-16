@@ -2,6 +2,7 @@ package com.tlasmith.generator;
 
 import com.tlasmith.ast.*;
 import com.tlasmith.env.Environment;
+import com.tlasmith.validation.SanyValidator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import static org.junit.jupiter.api.Assertions.*;
@@ -11,6 +12,7 @@ import java.util.Arrays;
 class GeneratorTest {
     private Generator generator;
     private Environment environment;
+    private SanyValidator validator;
 
     @BeforeEach
     void setUp() {
@@ -18,6 +20,7 @@ class GeneratorTest {
         environment = new Environment();
         environment.addVariables(Arrays.asList("x", "y", "state"));
         environment.addConstants(Arrays.asList("N", "MaxVal"));
+        validator = new SanyValidator();
     }
 
     @Test
@@ -36,6 +39,10 @@ class GeneratorTest {
 
         assertEquals(Formula.FormulaType.INIT, spec.getInit().get().getType());
         assertEquals(Formula.FormulaType.NEXT, spec.getNext().get().getType());
+
+        // Generated spec must be SANY-valid
+        SanyValidator.ValidationResult result = validator.validateTLAText(spec.toTLAString());
+        assertTrue(result.isValid(), "Generated spec must be SANY-valid. Errors: " + result.getErrors());
     }
 
     @Test
@@ -156,11 +163,15 @@ class GeneratorTest {
 
     @Test
     void testMultipleGenerations() {
-        // Generate multiple specs to ensure no exceptions
+        // Generate multiple specs to ensure no exceptions and all are valid
         for (int i = 0; i < 10; i++) {
             Spec spec = generator.generateSpec("Test" + i);
             assertNotNull(spec);
             assertNotNull(spec.toTLAString());
+
+            // Each generated spec must be SANY-valid
+            SanyValidator.ValidationResult result = validator.validateTLAText(spec.toTLAString());
+            assertTrue(result.isValid(), "Generated spec Test" + i + " must be SANY-valid. Errors: " + result.getErrors());
         }
     }
 }

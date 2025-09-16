@@ -68,8 +68,9 @@ public class TLAPrinter implements ExprVisitor<String> {
     }
 
     private boolean needsParentheses(BinaryOp binaryOp) {
-        // For now, use parentheses for logical operators to ensure clarity
-        return binaryOp.getOperator().isLogical();
+        // ALWAYS use parentheses to completely eliminate precedence conflicts
+        // TLA+ has complex precedence rules, so we err on the side of safety
+        return true;
     }
 
     public String printFormula(Formula formula) {

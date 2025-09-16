@@ -55,11 +55,9 @@ class IntegrationTest {
             SanyValidator.ValidationResult result = validator.validateTLAText(tlaText);
             assertNotNull(result);
 
-            // Should at least perform basic validation
-            // If there are errors, they should be reported properly
-            if (!result.isValid()) {
-                assertFalse(result.getErrors().isEmpty());
-            }
+            // All generated specs MUST be SANY-valid
+            assertTrue(result.isValid(),
+                "Generated spec ValidationTest" + i + " must be SANY-valid. Errors: " + result.getErrors());
         }
     }
 
@@ -97,6 +95,8 @@ class IntegrationTest {
             // Validate each generated spec
             SanyValidator.ValidationResult result = validator.validateTLAText(tlaText);
             assertNotNull(result);
+            assertTrue(result.isValid(),
+                "Generated spec " + moduleName + " must be SANY-valid. Errors: " + result.getErrors());
         }
     }
 
@@ -114,16 +114,10 @@ class IntegrationTest {
         }
         assertEquals(openParens, closeParens);
 
-        // Should not have syntax errors that basic validation can catch
+        // Generated spec must be SANY-valid
         SanyValidator.ValidationResult result = validator.validateTLAText(tlaText);
-
-        // If validation fails due to semantic issues, that's expected
-        // But should not fail due to basic syntax problems
-        if (!result.isValid()) {
-            // Check that it's not failing for trivial reasons
-            assertFalse(result.getErrors().stream()
-                .anyMatch(error -> error.contains("empty") || error.contains("module structure")));
-        }
+        assertTrue(result.isValid(),
+            "Generated spec ParseTest must be SANY-valid. Errors: " + result.getErrors());
     }
 
     @Test

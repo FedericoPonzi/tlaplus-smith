@@ -41,11 +41,8 @@ class TLASmithTest {
         SanyValidator.ValidationResult result = TLASmith.validate(spec);
 
         assertNotNull(result);
-        // Generated specs should typically be valid
-        if (!result.isValid()) {
-            // If not valid, should have errors
-            assertFalse(result.getErrors().isEmpty());
-        }
+        // Generated specs MUST be valid
+        assertTrue(result.isValid(), "Generated spec must be SANY-valid. Errors: " + result.getErrors());
     }
 
     @Test
@@ -66,6 +63,7 @@ class TLASmithTest {
     void testGenerateAndValidate() {
         SanyValidator.ValidationResult result = TLASmith.generateAndValidate("TestModule", 42);
         assertNotNull(result);
+        assertTrue(result.isValid(), "Generated spec must be SANY-valid. Errors: " + result.getErrors());
     }
 
     @Test
