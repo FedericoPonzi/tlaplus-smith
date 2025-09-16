@@ -157,8 +157,6 @@ The project uses a visitor pattern for AST nodes with the base `Expr` interface.
 
 ## Testing
 
-The project includes comprehensive test coverage:
-
 ```bash
 # Run all tests
 ./gradlew test

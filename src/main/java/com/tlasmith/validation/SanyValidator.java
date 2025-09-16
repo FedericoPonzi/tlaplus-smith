@@ -1,7 +1,15 @@
 package com.tlasmith.validation;
 
 import com.tlasmith.ast.Spec;
+import org.apache.commons.io.output.WriterOutputStream;
+import tla2sany.drivers.FrontEndException;
+import tla2sany.drivers.SANY;
+import tla2sany.modanalyzer.SpecObj;
+import util.SimpleFilenameToStream;
 
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -74,84 +82,144 @@ public class SanyValidator {
     }
 
     public ValidationResult validateTLAText(String tlaText) {
-        // TODO: Integrate with actual SANY parser
-        // For now, perform basic syntactic checks
+        try {
+            return validateWithSany(tlaText);
+        } catch (Exception e) {
+            return ValidationResult.invalid("SANY validation failed: " + e.getMessage());
+        }
+    }
 
+    private ValidationResult validateWithSany(String tlaText) throws IOException {
         List<String> errors = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
 
-        // Basic validation checks
+        // Basic validation checks first
         if (tlaText == null || tlaText.trim().isEmpty()) {
             errors.add("TLA+ specification is empty");
+            return new ValidationResult(false, errors, warnings);
         }
 
         if (!tlaText.contains("---- MODULE") || !tlaText.contains("====")) {
             errors.add("Invalid TLA+ module structure");
+            return new ValidationResult(false, errors, warnings);
         }
 
-        // Check for common syntax issues
-        if (tlaText.contains("VARIABLES") && !tlaText.contains("Init")) {
-            warnings.add("Specification has variables but no Init formula");
-        }
+        // Extract module name for temp file
+        String moduleName = extractModuleName(tlaText);
 
-        if (tlaText.contains("Init") && !tlaText.contains("Next")) {
-            warnings.add("Specification has Init but no Next formula");
-        }
+        // Write TLA+ text to temporary file with proper name
+        File tempFile = null;
+        try {
+            File tempDir = Files.createTempDirectory("tlasmith").toFile();
+            tempFile = new File(tempDir, moduleName + ".tla");
+            try (FileWriter writer = new FileWriter(tempFile)) {
+                writer.write(tlaText);
+            }
 
-        // Check for balanced parentheses
-        if (!hasBalancedParentheses(tlaText)) {
-            errors.add("Unbalanced parentheses in specification");
-        }
+            // Validate using SANY
+            try {
+                validateFileWithSany(tempFile);
+                return ValidationResult.valid();
+            } catch (SanySyntaxException e) {
+                errors.add("Syntax error: " + e.getMessage());
+                return new ValidationResult(false, errors, warnings);
+            } catch (SanySemanticException e) {
+                errors.add("Semantic error: " + e.getMessage());
+                return new ValidationResult(false, errors, warnings);
+            } catch (SanyFrontendException e) {
+                errors.add("Frontend error: " + e.getMessage());
+                return new ValidationResult(false, errors, warnings);
+            } catch (SanyException e) {
+                errors.add("SANY error: " + e.getMessage());
+                return new ValidationResult(false, errors, warnings);
+            }
 
-        boolean isValid = errors.isEmpty();
-        return new ValidationResult(isValid, errors, warnings);
-    }
-
-    private boolean hasBalancedParentheses(String text) {
-        int count = 0;
-        for (char c : text.toCharArray()) {
-            if (c == '(') {
-                count++;
-            } else if (c == ')') {
-                count--;
-                if (count < 0) {
-                    return false;
+        } finally {
+            if (tempFile != null && tempFile.exists()) {
+                tempFile.delete();
+                // Also clean up parent temp directory
+                File parentDir = tempFile.getParentFile();
+                if (parentDir != null && parentDir.exists()) {
+                    parentDir.delete();
                 }
             }
         }
-        return count == 0;
+    }
+
+    private void validateFileWithSany(File file) throws IOException, SanyFrontendException {
+        var errBuf = new StringWriter();
+
+        // Set a unique tmpdir to avoid race-condition in SANY
+        File tempDir = Files.createTempDirectory("sanyimp").toFile();
+        System.setProperty("java.io.tmpdir", tempDir.toString());
+
+        try {
+            var filenameResolver = new SimpleFilenameToStream(file.getAbsoluteFile().getParent());
+            var specObj = new SpecObj(file.getAbsolutePath(), filenameResolver);
+
+            var outStream = WriterOutputStream
+                    .builder()
+                    .setWriter(errBuf)
+                    .setCharset(StandardCharsets.UTF_8)
+                    .get();
+
+            try {
+                SANY.frontEndMain(
+                        specObj,
+                        file.getAbsolutePath(),
+                        new PrintStream(outStream)
+                );
+            } catch (FrontEndException e) {
+                throw new SanyFrontendException(e);
+            }
+
+            throwOnError(specObj);
+        } finally {
+            // Clean up temp directory
+            if (tempDir.exists()) {
+                tempDir.delete();
+            }
+        }
+    }
+
+    private void throwOnError(SpecObj specObj) {
+        var parseErrors = specObj.getParseErrors();
+        if (parseErrors.isFailure()) {
+            throw new SanySyntaxException(parseErrors.toString());
+        }
+
+        var semanticErrors = specObj.getSemanticErrors();
+        if (semanticErrors.isFailure()) {
+            throw new SanySemanticException(semanticErrors.toString());
+        }
+
+        // the error level is above zero, so SANY failed for an unknown reason
+        if (specObj.getErrorLevel() > 0) {
+            throw new SanyException(
+                    String.format("Unknown SANY error (error level=%d)", specObj.getErrorLevel())
+            );
+        }
     }
 
     public boolean isAvailable() {
-        // TODO: Check if SANY is available in the system
-        // For now, return false since this is just a stub
-        return false;
+        return true; // Now that we have SANY integrated
     }
 
     public String getSanyVersion() {
-        // TODO: Return actual SANY version when integrated
-        return "SANY integration not available";
+        return "TLA2Tools 1.8.0-SNAPSHOT";
     }
 
-    // Placeholder methods for future SANY integration
-
-    public ValidationResult validateWithFullSany(String tlaText) {
-        if (!isAvailable()) {
-            return ValidationResult.invalid("SANY not available");
+    private String extractModuleName(String tlaText) {
+        // Extract module name from "---- MODULE ModuleName ----"
+        String[] lines = tlaText.split("\n");
+        for (String line : lines) {
+            if (line.trim().startsWith("---- MODULE")) {
+                String[] parts = line.trim().split("\\s+");
+                if (parts.length >= 3) {
+                    return parts[2]; // "----", "MODULE", "ModuleName", "----"
+                }
+            }
         }
-
-        // TODO: Implement actual SANY integration
-        // This would involve:
-        // 1. Writing TLA+ text to temporary file
-        // 2. Calling SANY parser via command line or Java API
-        // 3. Parsing SANY output for errors and warnings
-        // 4. Returning structured ValidationResult
-
-        throw new UnsupportedOperationException("Full SANY integration not yet implemented");
-    }
-
-    public void setSanyPath(String path) {
-        // TODO: Set path to SANY installation
-        throw new UnsupportedOperationException("SANY path configuration not yet implemented");
+        return "UnknownModule"; // fallback
     }
 }

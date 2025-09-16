@@ -34,10 +34,10 @@ class IntegrationTest {
         assertTrue(tlaText.contains("===="));
 
         // Should have proper TLA+ structure
-        if (spec.getConstants().size() > 0) {
+        if (!spec.getConstants().isEmpty()) {
             assertTrue(tlaText.contains("CONSTANTS"));
         }
-        if (spec.getVariables().size() > 0) {
+        if (!spec.getVariables().isEmpty()) {
             assertTrue(tlaText.contains("VARIABLES"));
         }
         if (!spec.getExtendsModules().isEmpty()) {
