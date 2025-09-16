@@ -287,14 +287,6 @@ The project uses a visitor pattern for AST nodes with the base `Expr` interface.
 4. Add generation logic to `Generator`
 5. Write comprehensive tests
 
-### SANY Integration
-The `SanyValidator` class provides a framework for integrating with TLA+ SANY parser:
-
-1. Implement `validateWithFullSany()` method
-2. Add file I/O for temporary TLA+ files
-3. Execute SANY via command line or Java API
-4. Parse SANY output into `ValidationResult`
-
 ## Contributing
 
 1. Fork the repository
@@ -320,4 +312,4 @@ The `SanyValidator` class provides a framework for integrating with TLA+ SANY pa
 
 ## Acknowledgments
 
-Inspired by Csmith for C and designed to support the TLA+ ecosystem with robust random testing capabilities.
+Inspired by [Csmith for C](https://github.com/csmith-project/csmith) and designed to support the TLA+ ecosystem with robust random testing capabilities.
