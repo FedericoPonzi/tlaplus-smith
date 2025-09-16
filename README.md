@@ -36,7 +36,7 @@ A random TLA+ specification generator inspired by Csmith for C. TLA+-Smith gener
 
 ### Using as a Library (Recommended)
 
-Add TLA+-Smith to your project via JitPack:
+Add TLA+-Smith to your project via [JitPack](https://jitpack.io/#FedericoPonzi/tlaplus-smith/):
 
 #### Gradle (Kotlin DSL)
 ```kotlin
