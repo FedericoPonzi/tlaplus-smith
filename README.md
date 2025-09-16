@@ -34,14 +34,51 @@ A random TLA+ specification generator inspired by Csmith for C. TLA+-Smith gener
 
 ## Installation and Setup
 
-### Prerequisites
+### Using as a Library (Recommended)
+
+Add TLA+-Smith to your project via JitPack:
+
+#### Gradle
+```gradle
+// settings.gradle(.kts)
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven { url = uri("https://jitpack.io") }
+    }
+}
+
+// build.gradle(.kts)
+dependencies {
+    implementation 'com.github.fponzi:tlaplus-smith:1.0.0'
+}
+```
+
+#### Maven
+```xml
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
+<dependency>
+    <groupId>com.github.fponzi</groupId>
+    <artifactId>tlaplus-smith</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+### Building from Source
+
+#### Prerequisites
 - Java 11 or higher
 - Gradle (wrapper included)
 
-### Building the Project
-
 ```bash
-# Clone or extract the project
+# Clone the project
+git clone https://github.com/fponzi/tlaplus-smith.git
 cd tlaplus-smith
 
 # Build the project
@@ -96,29 +133,64 @@ Spec == Init /\ [][Next]_<<x, x2, x3>>
 ====
 ```
 
-### Programmatic Usage
+### Library Usage (Simple API)
+
+```java
+import com.tlasmith.TLASmith;
+import com.tlasmith.ast.Spec;
+import com.tlasmith.validation.SanyValidator;
+
+// Generate a random TLA+ specification
+Spec spec = TLASmith.generateSpec("MyModule");
+
+// Generate with seed for reproducibility
+Spec spec = TLASmith.generateSpec("MyModule", 12345);
+
+// Convert to TLA+ text
+String tlaText = TLASmith.toTLAString(spec);
+System.out.println(tlaText);
+
+// Validate with SANY
+SanyValidator.ValidationResult result = TLASmith.validate(spec);
+if (result.isValid()) {
+    System.out.println("Generated valid TLA+ specification!");
+} else {
+    System.out.println("Errors: " + result.getErrors());
+}
+
+// Generate and validate in one call
+SanyValidator.ValidationResult result = TLASmith.generateAndValidate("TestModule", 42);
+```
+
+### Advanced Library Usage
 
 ```java
 import com.tlasmith.generator.Generator;
 import com.tlasmith.ast.Spec;
 import com.tlasmith.printer.TLAPrinter;
+import com.tlasmith.validation.SanyValidator;
 
-// Create generator with specific seed
+// Custom configuration
+Generator.GeneratorConfig config = new Generator.GeneratorConfig(
+    5,     // maxDepth
+    2, 4,  // min/max variables
+    1, 2,  // min/max constants
+    0.4,   // literal probability
+    0.3,   // variable probability
+    0.2,   // constant probability
+    0.1    // binary operation probability
+);
+
+// Generate with custom config
+Spec spec = TLASmith.generateSpec("MyModule", 12345, config);
+
+// Direct access to generator
 Generator generator = new Generator(12345);
-
-// Generate a specification
 Spec spec = generator.generateSpec("MyModule");
 
-// Convert to TLA+ text
-String tlaText = TLAPrinter.print(spec);
-System.out.println(tlaText);
-
-// Validate (basic validation)
-SanyValidator validator = new SanyValidator();
-ValidationResult result = validator.validateTLAText(tlaText);
-if (result.isValid()) {
-    System.out.println("Generated valid TLA+ specification!");
-}
+// Direct validation of TLA+ text
+String tlaText = "---- MODULE Test ----\nEXTENDS Integers\n====";
+SanyValidator.ValidationResult result = TLASmith.validateText(tlaText);
 ```
 
 ### Custom Configuration
@@ -217,7 +289,7 @@ The `SanyValidator` class provides a framework for integrating with TLA+ SANY pa
 
 ## License
 
-[Specify license here]
+[Apache 2.0](LICENSE)
 
 ## Acknowledgments
 

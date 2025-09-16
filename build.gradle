@@ -1,5 +1,5 @@
 plugins {
-    id 'java'
+    id 'java-library'
     id 'application'
 }
 
@@ -24,7 +24,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.lamport:tla2tools:1.8.0-SNAPSHOT'
+    api 'org.lamport:tla2tools:1.8.0-SNAPSHOT'
     implementation 'commons-io:commons-io:2.16.1'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
