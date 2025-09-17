@@ -50,4 +50,9 @@ class TLAStringVisitor implements ExprVisitor<String> {
     public String visit(Formula formula) {
         return formula.getExpression().accept(this);
     }
+
+    @Override
+    public String visit(Operator operator) {
+        return operator.getExpression().accept(this);
+    }
 }

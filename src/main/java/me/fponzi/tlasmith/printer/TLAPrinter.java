@@ -67,6 +67,11 @@ public class TLAPrinter implements ExprVisitor<String> {
         return formula.getExpression().accept(this);
     }
 
+    @Override
+    public String visit(Operator operator) {
+        return operator.getExpression().accept(this);
+    }
+
     private boolean needsParentheses(BinaryOp binaryOp) {
         // ALWAYS use parentheses to completely eliminate precedence conflicts
         // TLA+ has complex precedence rules, so we err on the side of safety
@@ -79,6 +84,23 @@ public class TLAPrinter implements ExprVisitor<String> {
         sb.append(formula.getName()).append(" == ");
 
         String exprStr = formula.getExpression().accept(this);
+
+        // For multi-line expressions, add proper formatting
+        if (exprStr.length() > 60 || exprStr.contains("(/\\") || exprStr.contains("(\\/")) {
+            sb.append("\n").append(addIndent(exprStr, 1));
+        } else {
+            sb.append(exprStr);
+        }
+
+        return sb.toString();
+    }
+
+    public String printOperator(Operator operator) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(operator.getName()).append(" == ");
+
+        String exprStr = operator.getExpression().accept(this);
 
         // For multi-line expressions, add proper formatting
         if (exprStr.length() > 60 || exprStr.contains("(/\\") || exprStr.contains("(\\/")) {
@@ -113,6 +135,11 @@ public class TLAPrinter implements ExprVisitor<String> {
         }
 
         sb.append("\n");
+
+        // Operator definitions
+        for (Operator operator : spec.getOperators()) {
+            sb.append(printOperator(operator)).append("\n\n");
+        }
 
         // Formula definitions
         for (Formula formula : spec.getFormulas()) {

@@ -8,14 +8,17 @@ public class Spec {
     private final List<String> extendsModules;
     private final List<String> constants;
     private final List<String> variables;
+    private final List<Operator> operators;
     private final List<Formula> formulas;
 
     public Spec(String moduleName, List<String> extendsModules,
-                List<String> constants, List<String> variables, List<Formula> formulas) {
+                List<String> constants, List<String> variables,
+                List<Operator> operators, List<Formula> formulas) {
         this.moduleName = Objects.requireNonNull(moduleName, "Module name cannot be null");
         this.extendsModules = new ArrayList<>(Objects.requireNonNull(extendsModules));
         this.constants = new ArrayList<>(Objects.requireNonNull(constants));
         this.variables = new ArrayList<>(Objects.requireNonNull(variables));
+        this.operators = new ArrayList<>(Objects.requireNonNull(operators));
         this.formulas = new ArrayList<>(Objects.requireNonNull(formulas));
     }
 
@@ -33,6 +36,10 @@ public class Spec {
 
     public List<String> getVariables() {
         return Collections.unmodifiableList(variables);
+    }
+
+    public List<Operator> getOperators() {
+        return Collections.unmodifiableList(operators);
     }
 
     public List<Formula> getFormulas() {
@@ -81,6 +88,11 @@ public class Spec {
 
         sb.append("\n");
 
+        // Operator definitions
+        for (Operator operator : operators) {
+            sb.append(operator.toDefinitionString()).append("\n\n");
+        }
+
         // Formula definitions
         for (Formula formula : formulas) {
             sb.append(formula.toDefinitionString()).append("\n\n");
@@ -111,12 +123,13 @@ public class Spec {
                Objects.equals(extendsModules, spec.extendsModules) &&
                Objects.equals(constants, spec.constants) &&
                Objects.equals(variables, spec.variables) &&
+               Objects.equals(operators, spec.operators) &&
                Objects.equals(formulas, spec.formulas);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(moduleName, extendsModules, constants, variables, formulas);
+        return Objects.hash(moduleName, extendsModules, constants, variables, operators, formulas);
     }
 
     @Override
@@ -130,6 +143,7 @@ public class Spec {
         private final List<String> extendsModules = new ArrayList<>();
         private final List<String> constants = new ArrayList<>();
         private final List<String> variables = new ArrayList<>();
+        private final List<Operator> operators = new ArrayList<>();
         private final List<Formula> formulas = new ArrayList<>();
 
         public Builder moduleName(String moduleName) {
@@ -162,13 +176,23 @@ public class Spec {
             return this;
         }
 
+        public Builder operator(Operator operator) {
+            this.operators.add(operator);
+            return this;
+        }
+
+        public Builder operators(List<Operator> operators) {
+            this.operators.addAll(operators);
+            return this;
+        }
+
         public Builder formula(Formula formula) {
             this.formulas.add(formula);
             return this;
         }
 
         public Spec build() {
-            return new Spec(moduleName, extendsModules, constants, variables, formulas);
+            return new Spec(moduleName, extendsModules, constants, variables, operators, formulas);
         }
     }
 }

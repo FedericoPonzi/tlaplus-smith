@@ -73,6 +73,10 @@ public class Generator {
         List<String> variables = generateIdentifierList("x", config.minVariables, config.maxVariables);
         env.addVariables(variables);
 
+        // Generate operators
+        List<Operator> operators = generateOperators(env);
+        env.addOperators(operators.stream().map(Operator::getName).collect(java.util.stream.Collectors.toList()));
+
         // Generate Init formula
         Formula initFormula = new Formula("Init", generateInitFormula(variables),
                                         Formula.FormulaType.INIT);
@@ -88,6 +92,7 @@ public class Generator {
                 .extend("Integers")
                 .constants(constants)
                 .variables(variables)
+                .operators(operators)
                 .formula(initFormula)
                 .formula(nextFormula)
                 .build();
@@ -100,6 +105,21 @@ public class Generator {
             identifiers.add(prefix + (i == 0 ? "" : String.valueOf(i + 1)));
         }
         return identifiers;
+    }
+
+    private List<Operator> generateOperators(Environment env) {
+        List<Operator> operators = new ArrayList<>();
+
+        // Generate 0-2 operators per spec for variety
+        int operatorCount = random.nextInt(3);
+
+        for (int i = 0; i < operatorCount; i++) {
+            String operatorName = "Op" + (i == 0 ? "" : String.valueOf(i + 1));
+            Expr operatorExpression = generateExpression(env, 2, false);
+            operators.add(new Operator(operatorName, operatorExpression));
+        }
+
+        return operators;
     }
 
     public Expr generateExpression(Environment env, int maxDepth, boolean preferBoolean) {
@@ -128,6 +148,12 @@ public class Generator {
             return generateConstant(env);
         }
 
+        // Operator reference (low probability)
+        cumulativeProb += 0.1; // Small probability to reference an operator
+        if (choice < cumulativeProb && !env.getAllOperators().isEmpty()) {
+            return generateOperatorReference(env);
+        }
+
         // Binary operation (default)
         return generateBinaryOperation(env, maxDepth - 1, preferBoolean);
     }
@@ -146,6 +172,11 @@ public class Generator {
         // Add constants if available
         if (!env.getAllConstants().isEmpty()) {
             candidates.add(generateConstant(env));
+        }
+
+        // Add operators if available
+        if (!env.getAllOperators().isEmpty()) {
+            candidates.add(generateOperatorReference(env));
         }
 
         return candidates.get(random.nextInt(candidates.size()));
@@ -169,6 +200,12 @@ public class Generator {
         List<String> consts = env.getAvailableConstants();
         String constName = consts.get(random.nextInt(consts.size()));
         return new Const(constName);
+    }
+
+    private Expr generateOperatorReference(Environment env) {
+        List<String> ops = env.getAvailableOperators();
+        String opName = ops.get(random.nextInt(ops.size()));
+        return new Var(opName); // Operators are referenced like variables in TLA+
     }
 
     private Expr generateBinaryOperation(Environment env, int maxDepth, boolean preferBoolean) {

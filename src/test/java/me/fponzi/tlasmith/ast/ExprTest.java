@@ -47,6 +47,52 @@ class ExprTest {
     }
 
     @Test
+    void testOperatorCreation() {
+        Var x = new Var("x");
+        Operator op = new Operator("Op", x);
+
+        assertEquals("Op", op.getName());
+        assertEquals(x, op.getExpression());
+        assertEquals("Op == x", op.toDefinitionString());
+    }
+
+    @Test
+    void testOperatorEquality() {
+        Var x = new Var("x");
+        Var y = new Var("y");
+
+        Operator op1 = new Operator("Op", x);
+        Operator op2 = new Operator("Op", x);
+        Operator op3 = new Operator("Op", y);
+        Operator op4 = new Operator("Op2", x);
+
+        assertEquals(op1, op2);
+        assertNotEquals(op1, op3);
+        assertNotEquals(op1, op4);
+        assertEquals(op1.hashCode(), op2.hashCode());
+    }
+
+    @Test
+    void testOperatorNullValues() {
+        Var x = new Var("x");
+        assertThrows(NullPointerException.class, () -> new Operator(null, x));
+        assertThrows(NullPointerException.class, () -> new Operator("Op", null));
+    }
+
+    @Test
+    void testOperatorWithComplexExpression() {
+        Var x = new Var("x");
+        Literal one = new Literal(1);
+        BinaryOp expr = new BinaryOp(BinaryOp.Operator.PLUS, x, one);
+
+        Operator op = new Operator("IncrementX", expr);
+
+        assertEquals("IncrementX", op.getName());
+        assertEquals(expr, op.getExpression());
+        assertEquals("IncrementX == x + 1", op.toDefinitionString());
+    }
+
+    @Test
     void testLiteralBoolean() {
         Literal trueL = Literal.trueLiteral();
         Literal falseL = Literal.falseLiteral();

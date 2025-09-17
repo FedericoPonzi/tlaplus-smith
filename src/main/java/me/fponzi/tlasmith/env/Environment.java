@@ -6,6 +6,7 @@ public class Environment {
     private final Set<String> constants;
     private final Set<String> variables;
     private final Set<String> boundVariables;
+    private final Set<String> operators;
     private final Environment parent;
 
     public Environment() {
@@ -17,6 +18,7 @@ public class Environment {
         this.constants = new HashSet<>();
         this.variables = new HashSet<>();
         this.boundVariables = new HashSet<>();
+        this.operators = new HashSet<>();
     }
 
     public void addConstant(String name) {
@@ -34,12 +36,21 @@ public class Environment {
         boundVariables.add(name);
     }
 
+    public void addOperator(String name) {
+        Objects.requireNonNull(name, "Operator name cannot be null");
+        operators.add(name);
+    }
+
     public void addConstants(Collection<String> constantNames) {
         constantNames.forEach(this::addConstant);
     }
 
     public void addVariables(Collection<String> variableNames) {
         variableNames.forEach(this::addVariable);
+    }
+
+    public void addOperators(Collection<String> operatorNames) {
+        operatorNames.forEach(this::addOperator);
     }
 
     public boolean hasConstant(String name) {
@@ -54,8 +65,12 @@ public class Environment {
         return boundVariables.contains(name) || (parent != null && parent.hasBoundVariable(name));
     }
 
+    public boolean hasOperator(String name) {
+        return operators.contains(name) || (parent != null && parent.hasOperator(name));
+    }
+
     public boolean hasIdentifier(String name) {
-        return hasConstant(name) || hasVariable(name) || hasBoundVariable(name);
+        return hasConstant(name) || hasVariable(name) || hasBoundVariable(name) || hasOperator(name);
     }
 
     public Set<String> getAllConstants() {
@@ -82,11 +97,20 @@ public class Environment {
         return result;
     }
 
+    public Set<String> getAllOperators() {
+        Set<String> result = new HashSet<>(operators);
+        if (parent != null) {
+            result.addAll(parent.getAllOperators());
+        }
+        return result;
+    }
+
     public Set<String> getAllIdentifiers() {
         Set<String> result = new HashSet<>();
         result.addAll(getAllConstants());
         result.addAll(getAllVariables());
         result.addAll(getAllBoundVariables());
+        result.addAll(getAllOperators());
         return result;
     }
 
@@ -98,6 +122,10 @@ public class Environment {
         return new ArrayList<>(getAllVariables());
     }
 
+    public List<String> getAvailableOperators() {
+        return new ArrayList<>(getAllOperators());
+    }
+
     public List<String> getAvailableIdentifiers() {
         return new ArrayList<>(getAllIdentifiers());
     }
@@ -107,7 +135,7 @@ public class Environment {
     }
 
     public boolean isEmpty() {
-        return constants.isEmpty() && variables.isEmpty() && boundVariables.isEmpty() &&
+        return constants.isEmpty() && variables.isEmpty() && boundVariables.isEmpty() && operators.isEmpty() &&
                (parent == null || parent.isEmpty());
     }
 
@@ -121,6 +149,7 @@ public class Environment {
                "constants=" + constants +
                ", variables=" + variables +
                ", boundVars=" + boundVariables +
+               ", operators=" + operators +
                ", hasParent=" + (parent != null) +
                "}";
     }

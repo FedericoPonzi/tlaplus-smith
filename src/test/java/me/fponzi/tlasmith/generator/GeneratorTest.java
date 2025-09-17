@@ -215,6 +215,54 @@ class GeneratorTest {
     }
 
     @Test
+    void testOperatorGeneration() {
+        Spec spec = generator.generateSpec("OperatorTest");
+
+        // Should potentially have operators (not guaranteed due to randomness)
+        assertNotNull(spec.getOperators());
+
+        // If operators exist, they should be valid
+        for (Operator operator : spec.getOperators()) {
+            assertNotNull(operator.getName());
+            assertFalse(operator.getName().isEmpty());
+            assertNotNull(operator.getExpression());
+
+            // Operator should have valid definition string
+            String defString = operator.toDefinitionString();
+            assertTrue(defString.contains(" == "));
+            assertTrue(defString.startsWith(operator.getName()));
+        }
+
+        // Spec should still be SANY-valid with operators
+        SanyValidator.ValidationResult result = validator.validateTLAText(spec.toTLAString());
+        assertTrue(result.isValid(), "Spec with operators must be SANY-valid. Errors: " + result.getErrors());
+    }
+
+    @Test
+    void testSpecBuilderWithOperators() {
+        Var x = new Var("x");
+        Operator op1 = new Operator("Op1", x);
+        Operator op2 = new Operator("Op2", new Literal(42));
+
+        Spec spec = new Spec.Builder()
+                .moduleName("TestModule")
+                .extend("Integers")
+                .variable("x")
+                .operator(op1)
+                .operator(op2)
+                .build();
+
+        assertEquals(2, spec.getOperators().size());
+        assertTrue(spec.getOperators().contains(op1));
+        assertTrue(spec.getOperators().contains(op2));
+
+        // Should include operators in TLA+ output
+        String tlaString = spec.toTLAString();
+        assertTrue(tlaString.contains("Op1 == x"));
+        assertTrue(tlaString.contains("Op2 == 42"));
+    }
+
+    @Test
     void testMultipleGenerations() {
         // Generate multiple specs to ensure no exceptions and all are valid
         for (int i = 0; i < 10; i++) {

@@ -6,4 +6,5 @@ public interface ExprVisitor<T> {
     T visit(Literal literal);
     T visit(BinaryOp binaryOp);
     T visit(Formula formula);
+    T visit(Operator operator);
 }
