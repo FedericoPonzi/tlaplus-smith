@@ -74,7 +74,7 @@ public class Generator {
         env.addVariables(variables);
 
         // Generate Init formula
-        Formula initFormula = new Formula("Init", generateExpression(env, config.maxDepth, true),
+        Formula initFormula = new Formula("Init", generateInitFormula(variables),
                                         Formula.FormulaType.INIT);
 
         // Generate Next formula
@@ -204,6 +204,38 @@ public class Generator {
         ));
 
         return operators.get(random.nextInt(operators.size()));
+    }
+
+    private Expr generateInitFormula(List<String> variables) {
+        if (variables.isEmpty()) {
+            return Literal.trueLiteral();
+        }
+
+        List<Expr> initializations = new ArrayList<>();
+
+        // Initialize each variable to a specific value
+        for (String var : variables) {
+            Var variable = new Var(var);
+            Expr initialValue = generateInitialValue();
+            initializations.add(new BinaryOp(BinaryOp.Operator.EQUALS, variable, initialValue));
+        }
+
+        // Combine all initializations with AND
+        Expr result = initializations.get(0);
+        for (int i = 1; i < initializations.size(); i++) {
+            result = new BinaryOp(BinaryOp.Operator.AND, result, initializations.get(i));
+        }
+
+        return result;
+    }
+
+    private Expr generateInitialValue() {
+        // Generate a simple initial value (integer literal or boolean)
+        if (random.nextBoolean()) {
+            return new Literal(random.nextInt(5)); // 0-4 for variety
+        } else {
+            return random.nextBoolean() ? Literal.trueLiteral() : Literal.falseLiteral();
+        }
     }
 
     private Expr generateNextStateFormula(Environment env, List<String> variables) {

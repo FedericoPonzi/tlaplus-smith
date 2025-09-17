@@ -162,6 +162,59 @@ class GeneratorTest {
     }
 
     @Test
+    void testInitFormulaInitializesAllVariables() {
+        Spec spec = generator.generateSpec("InitTest");
+
+        // Spec should have an Init formula
+        assertTrue(spec.getInit().isPresent());
+        Formula initFormula = spec.getInit().get();
+
+        // Get the TLA+ string representation of the Init formula
+        String initString = initFormula.toDefinitionString();
+        assertTrue(initString.startsWith("Init == "));
+
+        // Each variable should be initialized (appear in the Init formula)
+        for (String variable : spec.getVariables()) {
+            assertTrue(initString.contains(variable + " ="),
+                      "Variable '" + variable + "' should be initialized in Init formula: " + initString);
+        }
+
+        // Init should contain AND operators if multiple variables (except for single variable case)
+        if (spec.getVariables().size() > 1) {
+            assertTrue(initString.contains("/\\"),
+                      "Multiple variables should be combined with AND (/\\) in Init: " + initString);
+        }
+
+        // Should be SANY-valid
+        SanyValidator.ValidationResult result = validator.validateTLAText(spec.toTLAString());
+        assertTrue(result.isValid(), "Spec with variable initialization must be SANY-valid. Errors: " + result.getErrors());
+    }
+
+    @Test
+    void testInitFormulaWithSingleVariable() {
+        // Create generator with config that ensures single variable
+        Generator.GeneratorConfig singleVarConfig = new Generator.GeneratorConfig(
+            3, 1, 1, // single variable
+            0, 1, // optional constant
+            0.5, 0.3, 0.1, 0.1
+        );
+        Generator singleVarGenerator = new Generator(new java.util.Random(54321), singleVarConfig);
+
+        Spec spec = singleVarGenerator.generateSpec("SingleVarTest");
+
+        // Should have exactly one variable
+        assertEquals(1, spec.getVariables().size());
+
+        // Init should initialize that variable
+        assertTrue(spec.getInit().isPresent());
+        String initString = spec.getInit().get().toDefinitionString();
+
+        String variable = spec.getVariables().get(0);
+        assertTrue(initString.contains(variable + " ="),
+                  "Single variable '" + variable + "' should be initialized: " + initString);
+    }
+
+    @Test
     void testMultipleGenerations() {
         // Generate multiple specs to ensure no exceptions and all are valid
         for (int i = 0; i < 10; i++) {
