@@ -98,7 +98,12 @@ public class TLAPrinter implements ExprVisitor<String> {
     public String printOperator(Operator operator) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append(operator.getName()).append(" == ");
+        // Include parameters if present
+        sb.append(operator.getName());
+        if (!operator.getParameters().isEmpty()) {
+            sb.append("(").append(String.join(", ", operator.getParameters())).append(")");
+        }
+        sb.append(" == ");
 
         String exprStr = operator.getExpression().accept(this);
 

@@ -2,6 +2,7 @@ package me.fponzi.tlasmith.ast;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
+import java.util.List;
 
 class ExprTest {
 
@@ -88,8 +89,52 @@ class ExprTest {
         Operator op = new Operator("IncrementX", expr);
 
         assertEquals("IncrementX", op.getName());
+        assertTrue(op.getParameters().isEmpty());
         assertEquals(expr, op.getExpression());
         assertEquals("IncrementX == x + 1", op.toDefinitionString());
+    }
+
+    @Test
+    void testParameterizedOperator() {
+        Var a = new Var("a");
+        List<String> params = List.of("a");
+        Operator op = new Operator("Identity", params, a);
+
+        assertEquals("Identity", op.getName());
+        assertEquals(params, op.getParameters());
+        assertEquals(a, op.getExpression());
+        assertEquals("Identity(a) == a", op.toDefinitionString());
+    }
+
+    @Test
+    void testMultiParameterOperator() {
+        Var a = new Var("a");
+        Var b = new Var("b");
+        BinaryOp expr = new BinaryOp(BinaryOp.Operator.PLUS, a, b);
+        List<String> params = List.of("a", "b");
+
+        Operator op = new Operator("Add", params, expr);
+
+        assertEquals("Add", op.getName());
+        assertEquals(params, op.getParameters());
+        assertEquals(expr, op.getExpression());
+        assertEquals("Add(a, b) == a + b", op.toDefinitionString());
+    }
+
+    @Test
+    void testParameterizedOperatorEquality() {
+        Var a = new Var("a");
+        List<String> params1 = List.of("a");
+        List<String> params2 = List.of("a");
+        List<String> params3 = List.of("b");
+
+        Operator op1 = new Operator("Op", params1, a);
+        Operator op2 = new Operator("Op", params2, a);
+        Operator op3 = new Operator("Op", params3, a);
+
+        assertEquals(op1, op2);
+        assertNotEquals(op1, op3);
+        assertEquals(op1.hashCode(), op2.hashCode());
     }
 
     @Test

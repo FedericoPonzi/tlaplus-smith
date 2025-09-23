@@ -20,11 +20,17 @@ public class Generator {
         public final double variableProbability;
         public final double constantProbability;
         public final double binaryOpProbability;
+        public final int minOperators;
+        public final int maxOperators;
+        public final int minOperatorParameters;
+        public final int maxOperatorParameters;
 
         public GeneratorConfig(int maxDepth, int minVariables, int maxVariables,
                              int minConstants, int maxConstants,
                              double literalProbability, double variableProbability,
-                             double constantProbability, double binaryOpProbability) {
+                             double constantProbability, double binaryOpProbability,
+                             int minOperators, int maxOperators,
+                             int minOperatorParameters, int maxOperatorParameters) {
             this.maxDepth = maxDepth;
             this.minVariables = minVariables;
             this.maxVariables = maxVariables;
@@ -34,6 +40,10 @@ public class Generator {
             this.variableProbability = variableProbability;
             this.constantProbability = constantProbability;
             this.binaryOpProbability = binaryOpProbability;
+            this.minOperators = minOperators;
+            this.maxOperators = maxOperators;
+            this.minOperatorParameters = minOperatorParameters;
+            this.maxOperatorParameters = maxOperatorParameters;
         }
 
         public static GeneratorConfig defaultConfig() {
@@ -44,7 +54,9 @@ public class Generator {
                 0.3,  // literalProbability
                 0.4,  // variableProbability
                 0.2,  // constantProbability
-                0.1   // binaryOpProbability
+                0.1,  // binaryOpProbability
+                0, 2, // min/maxOperators (back to 0-2 for compatibility)
+                0, 2  // min/maxOperatorParameters (back to 0-2 for compatibility)
             );
         }
     }
@@ -75,7 +87,9 @@ public class Generator {
 
         // Generate operators
         List<Operator> operators = generateOperators(env);
-        env.addOperators(operators.stream().map(Operator::getName).collect(java.util.stream.Collectors.toList()));
+        for (Operator operator : operators) {
+            env.addOperator(operator);
+        }
 
         // Generate Init formula
         Formula initFormula = new Formula("Init", generateInitFormula(variables),
@@ -110,16 +124,37 @@ public class Generator {
     private List<Operator> generateOperators(Environment env) {
         List<Operator> operators = new ArrayList<>();
 
-        // Generate 0-2 operators per spec for variety
-        int operatorCount = random.nextInt(3);
+        // Generate operators based on config
+        int operatorCount = config.minOperators + random.nextInt(config.maxOperators - config.minOperators + 1);
 
         for (int i = 0; i < operatorCount; i++) {
             String operatorName = "Op" + (i == 0 ? "" : String.valueOf(i + 1));
-            Expr operatorExpression = generateExpression(env, 2, false);
-            operators.add(new Operator(operatorName, operatorExpression));
+
+            // Generate 0-2 parameters per operator
+            List<String> parameters = generateParameterList();
+
+            // Create environment with parameters as bound variables
+            Environment operatorEnv = parameters.isEmpty() ? env : env.createChildWithParameters(parameters);
+
+            Expr operatorExpression = generateExpression(operatorEnv, 2, false);
+            operators.add(new Operator(operatorName, parameters, operatorExpression));
         }
 
         return operators;
+    }
+
+    private List<String> generateParameterList() {
+        int paramCount = config.minOperatorParameters +
+                        random.nextInt(config.maxOperatorParameters - config.minOperatorParameters + 1);
+        List<String> parameters = new ArrayList<>();
+
+        for (int i = 0; i < paramCount; i++) {
+            // Use single letters: a, b, c
+            char paramName = (char) ('a' + i);
+            parameters.add(String.valueOf(paramName));
+        }
+
+        return parameters;
     }
 
     public Expr generateExpression(Environment env, int maxDepth, boolean preferBoolean) {
@@ -150,7 +185,7 @@ public class Generator {
 
         // Operator reference (low probability)
         cumulativeProb += 0.1; // Small probability to reference an operator
-        if (choice < cumulativeProb && !env.getAllOperators().isEmpty()) {
+        if (choice < cumulativeProb && !env.getZeroParameterOperators().isEmpty()) {
             return generateOperatorReference(env);
         }
 
@@ -174,8 +209,8 @@ public class Generator {
             candidates.add(generateConstant(env));
         }
 
-        // Add operators if available
-        if (!env.getAllOperators().isEmpty()) {
+        // Add operators if available (only zero-parameter operators)
+        if (!env.getZeroParameterOperators().isEmpty()) {
             candidates.add(generateOperatorReference(env));
         }
 
@@ -203,9 +238,13 @@ public class Generator {
     }
 
     private Expr generateOperatorReference(Environment env) {
-        List<String> ops = env.getAvailableOperators();
+        List<String> ops = env.getZeroParameterOperators();
+        if (ops.isEmpty()) {
+            // Fallback to a literal if no zero-parameter operators are available
+            return generateLiteral(false);
+        }
         String opName = ops.get(random.nextInt(ops.size()));
-        return new Var(opName); // Operators are referenced like variables in TLA+
+        return new Var(opName); // Zero-parameter operators are referenced like variables in TLA+
     }
 
     private Expr generateBinaryOperation(Environment env, int maxDepth, boolean preferBoolean) {

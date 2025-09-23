@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Arrays;
+import java.util.List;
 
 class GeneratorTest {
     private Generator generator;
@@ -196,7 +197,8 @@ class GeneratorTest {
         Generator.GeneratorConfig singleVarConfig = new Generator.GeneratorConfig(
             3, 1, 1, // single variable
             0, 1, // optional constant
-            0.5, 0.3, 0.1, 0.1
+            0.5, 0.3, 0.1, 0.1,
+            0, 1, 0, 1  // min/maxOperators, min/maxOperatorParameters
         );
         Generator singleVarGenerator = new Generator(new java.util.Random(54321), singleVarConfig);
 
@@ -260,6 +262,57 @@ class GeneratorTest {
         String tlaString = spec.toTLAString();
         assertTrue(tlaString.contains("Op1 == x"));
         assertTrue(tlaString.contains("Op2 == 42"));
+    }
+
+    @Test
+    void testParameterizedOperatorGeneration() {
+        // Use a fixed seed to get deterministic parameterized operators
+        Generator paramGen = new Generator(98765);
+        Spec spec = paramGen.generateSpec("ParamTest");
+
+        // Check that some operators have parameters (if any operators are generated)
+        for (Operator operator : spec.getOperators()) {
+            assertNotNull(operator.getName());
+            assertNotNull(operator.getParameters());
+            assertNotNull(operator.getExpression());
+
+            // Test that parameterized operators format correctly
+            String defString = operator.toDefinitionString();
+            if (!operator.getParameters().isEmpty()) {
+                assertTrue(defString.contains("("));
+                assertTrue(defString.contains(")"));
+                for (String param : operator.getParameters()) {
+                    assertTrue(defString.contains(param));
+                }
+            }
+        }
+
+        // Spec should still be valid TLA+
+        String tlaString = spec.toTLAString();
+        assertNotNull(tlaString);
+        assertTrue(tlaString.contains("---- MODULE"));
+    }
+
+    @Test
+    void testSpecBuilderWithParameterizedOperators() {
+        Var a = new Var("a");
+        Var b = new Var("b");
+        BinaryOp expr = new BinaryOp(BinaryOp.Operator.PLUS, a, b);
+
+        Operator paramOp = new Operator("Add", List.of("a", "b"), expr);
+
+        Spec spec = new Spec.Builder()
+                .moduleName("TestModule")
+                .extend("Integers")
+                .operator(paramOp)
+                .build();
+
+        assertEquals(1, spec.getOperators().size());
+        assertEquals(paramOp, spec.getOperators().get(0));
+
+        // Should include parameterized operator in TLA+ output
+        String tlaString = spec.toTLAString();
+        assertTrue(tlaString.contains("Add(a, b) == a + b"));
     }
 
     @Test

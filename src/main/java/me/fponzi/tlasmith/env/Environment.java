@@ -1,5 +1,6 @@
 package me.fponzi.tlasmith.env;
 
+import me.fponzi.tlasmith.ast.Operator;
 import java.util.*;
 
 public class Environment {
@@ -7,6 +8,7 @@ public class Environment {
     private final Set<String> variables;
     private final Set<String> boundVariables;
     private final Set<String> operators;
+    private final Map<String, Integer> operatorParameterCounts;
     private final Environment parent;
 
     public Environment() {
@@ -19,6 +21,7 @@ public class Environment {
         this.variables = new HashSet<>();
         this.boundVariables = new HashSet<>();
         this.operators = new HashSet<>();
+        this.operatorParameterCounts = new HashMap<>();
     }
 
     public void addConstant(String name) {
@@ -39,6 +42,14 @@ public class Environment {
     public void addOperator(String name) {
         Objects.requireNonNull(name, "Operator name cannot be null");
         operators.add(name);
+        operatorParameterCounts.put(name, 0); // Default to 0 parameters
+    }
+
+    public void addOperator(Operator operator) {
+        Objects.requireNonNull(operator, "Operator cannot be null");
+        String name = operator.getName();
+        operators.add(name);
+        operatorParameterCounts.put(name, operator.getParameters().size());
     }
 
     public void addConstants(Collection<String> constantNames) {
@@ -126,12 +137,40 @@ public class Environment {
         return new ArrayList<>(getAllOperators());
     }
 
+    public List<String> getZeroParameterOperators() {
+        List<String> result = new ArrayList<>();
+
+        // Add local zero-parameter operators
+        for (String opName : operators) {
+            if (operatorParameterCounts.getOrDefault(opName, 0) == 0) {
+                result.add(opName);
+            }
+        }
+
+        // Add parent's zero-parameter operators
+        if (parent != null) {
+            result.addAll(parent.getZeroParameterOperators());
+        }
+
+        return result;
+    }
+
     public List<String> getAvailableIdentifiers() {
         return new ArrayList<>(getAllIdentifiers());
     }
 
     public Environment createChild() {
         return new Environment(this);
+    }
+
+    public Environment createChildWithParameters(Collection<String> parameterNames) {
+        Environment child = createChild();
+        child.addBoundVariables(parameterNames);
+        return child;
+    }
+
+    public void addBoundVariables(Collection<String> boundVariableNames) {
+        boundVariableNames.forEach(this::addBoundVariable);
     }
 
     public boolean isEmpty() {
